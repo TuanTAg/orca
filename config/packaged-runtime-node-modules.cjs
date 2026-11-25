@@ -27,6 +27,8 @@ const requireFromProject = createRequire(join(projectDir, 'package.json'))
 const PACKAGED_RUNTIME_PACKAGE_ROOTS = [
   '@anthropic-ai/claude-agent-sdk',
   '@linear/sdk',
+  // The unpacked MCP CLI imports this SDK directly at runtime.
+  '@modelcontextprotocol/sdk',
   '@orca/process-host',
   '@parcel/watcher',
   'electron-updater',
