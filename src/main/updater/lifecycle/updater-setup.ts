@@ -57,10 +57,18 @@ export type UpdaterSetupOptions = {
 
 export class UpdaterSetup extends UpdaterDownloadInstall {
   checkForUpdates(): void {
+    if (app.getVersion().includes('-hostgroup.')) {
+      this.sendStatus({ state: 'not-available' })
+      return
+    }
     this.checkForUpdatesInBackground()
   }
 
   checkForUpdatesFromMenu(options?: UpdateCheckOptions): void {
+    if (app.getVersion().includes('-hostgroup.')) {
+      this.sendStatus({ state: 'not-available', userInitiated: true })
+      return
+    }
     super.checkForUpdatesFromMenu(options)
   }
 
@@ -170,7 +178,8 @@ export class UpdaterSetup extends UpdaterDownloadInstall {
       this.sendErrorStatus(`The server update did not complete: ${serveHandoffFailure}`, true)
     }
 
-    if (!app.isPackaged) {
+    // Custom builds are manually installed; never subscribe to upstream automatic updates.
+    if (!app.isPackaged || app.getVersion().includes('-hostgroup.')) {
       return
     }
 
