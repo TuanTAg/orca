@@ -28,7 +28,10 @@ import {
   deferHostSectionCollapse,
   scopeHostSectionCollapse
 } from '../../../../../../shared/sidebar-list/hosts/host-section-collapse'
-import { addHostSectionRows } from '../../../../../../shared/sidebar-list/hosts/host-section-rows'
+import {
+  addHostSectionRows,
+  shouldGroupSidebarByHost
+} from '../../../../../../shared/sidebar-list/hosts/host-section-rows'
 import { collectRenderedSidebarRowKeys } from './rendered-row-keys'
 import {
   mergeDraggedHostSectionOrder,
@@ -139,8 +142,11 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
   )
   const hostLabelById = selectHostLabels(hostOptions)
 
-  const hostScopedGroups =
-    args.workspaceHostScope !== 'all' || args.visibleWorkspaceHostIds !== null
+  const hostScopedGroups = shouldGroupSidebarByHost(
+    args.groupBy,
+    args.workspaceHostScope,
+    args.visibleWorkspaceHostIds
+  )
   // Same-id registrations on two hosts: each row and project header needs its own host's.
   const repoOfWorktree = useMemo(() => createHostScopedRepoOf(repos, repoMap), [repos, repoMap])
   const rowPlan = useMemo(
@@ -256,8 +262,7 @@ export function useSidebarSectionRows(args: SectionRowsArgs) {
       localHostLabel: getLocalExecutionHostLabel(),
       collapsedHostKeys: effectiveCollapsedGroups,
       forceCollapseHosts: hostDragActive,
-      // Why: projects/workspaces are the primary sidebar object; host sections are only an explicit host-filter view.
-      preferProjectGrouping: true
+      preferProjectGrouping: !hostScopedGroups
     })
     return hostScopedGroups
       ? scopeHostSectionCollapse({

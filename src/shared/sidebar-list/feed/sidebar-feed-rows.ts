@@ -1,5 +1,4 @@
 import {
-  ALL_EXECUTION_HOSTS_SCOPE,
   normalizeExecutionHostOrder,
   parseExecutionHostId,
   type ExecutionHostId,
@@ -40,6 +39,7 @@ import { deferHostSectionCollapse, scopeHostSectionCollapse } from '../hosts/hos
 import { orderHostSectionOptions } from '../hosts/host-section-order'
 import {
   addHostSectionRows,
+  shouldGroupSidebarByHost,
   type HostSectionOption,
   type HostSectionRow
 } from '../hosts/host-section-rows'
@@ -253,8 +253,11 @@ export function planSidebarFeedRows(
       hostOptions,
       normalizeExecutionHostOrder(view.workspaceHostOrder ?? domains.desktop?.workspaceHostOrder)
     ),
-    hostScoped:
-      view.workspaceHostScope !== ALL_EXECUTION_HOSTS_SCOPE || view.visibleWorkspaceHostIds !== null
+    hostScoped: shouldGroupSidebarByHost(
+      groupBy,
+      view.workspaceHostScope,
+      view.visibleWorkspaceHostIds
+    )
   }
 }
 
@@ -278,7 +281,7 @@ export function renderSidebarFeedRows(
     localHostLabel: view.localHostLabel,
     collapsedHostKeys: collapsed,
     forceCollapseHosts,
-    preferProjectGrouping: true
+    preferProjectGrouping: !planned.hostScoped
   })
   const sectionRows = planned.hostScoped
     ? scopeHostSectionCollapse({ rows: sectioned, collapsedGroups: collapsed })

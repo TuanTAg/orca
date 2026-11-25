@@ -8,7 +8,6 @@ import type { AppState } from '@/store/types'
 import type { RuntimeStatuses } from '@/store/slices/runtime-status/views/runtime-status-owner'
 import { getHostDisplayLabelOverrides } from '../../../../../../shared/execution-host/host-setting-overrides'
 import {
-  ALL_EXECUTION_HOSTS_SCOPE,
   getLocalExecutionHostLabel,
   getSettingsFocusedExecutionHostId
 } from '../../../../../../shared/execution-host/execution-host'
@@ -25,9 +24,14 @@ import {
 } from '../../../../../../shared/sidebar-list/row-types'
 import {
   addHostSectionRows,
+  shouldGroupSidebarByHost,
   type HostSectionRow
 } from '../../../../../../shared/sidebar-list/hosts/host-section-rows'
 import { orderHostSectionOptions } from '../../../../../../shared/sidebar-list/hosts/host-section-order'
+import {
+  deferHostSectionCollapse,
+  scopeHostSectionCollapse
+} from '../../../../../../shared/sidebar-list/hosts/host-section-collapse'
 import { buildSidebarHostOptions } from '../controls/sidebar-host-options'
 import { getLogicalRepoOrderRankById } from '../../../../../../shared/sidebar-list/sections/project-section-order'
 import { getRenderedWorktreesInSidebarOrder } from '../navigation/worktree-sidebar-row-preference'
@@ -76,6 +80,11 @@ export function computeRenderedSidebarRows(
     state.worktreeCardProperties
   )
 
+  const needsHostSections = shouldGroupSidebarByHost(
+    state.groupBy,
+    state.workspaceHostScope,
+    state.visibleWorkspaceHostIds
+  )
   const repoMap = getIndexedRepoMap(state.repos)
   const rows = planSidebarRows({
     groupBy: state.groupBy,
@@ -112,35 +121,36 @@ export function computeRenderedSidebarRows(
     pinnedDisplayPolicy,
     filterRepoIds: state.filterRepoIds,
     hiddenProjects: indexHiddenProjects(state.repos, defaultHostId)
-  }).render(state.collapsedGroups)
+  }).render(
+    needsHostSections ? deferHostSectionCollapse(state.collapsedGroups) : state.collapsedGroups
+  )
 
-  // Build the host registry only when sections may affect order; zero/one-host cases still safely no-op.
-  const needsHostSections =
-    state.workspaceHostScope !== ALL_EXECUTION_HOSTS_SCOPE || state.visibleWorkspaceHostIds != null
-  return needsHostSections
-    ? addHostSectionRows({
-        rows,
-        hostOptions: orderHostSectionOptions(
-          buildSidebarHostOptions({
-            repos: state.repos,
-            sshTargetLabels: state.sshTargetLabels,
-            sshConnectionStates: state.sshConnectionStates,
-            settings: state.settings,
-            runtimeEnvironments: state.runtimeEnvironments,
-            runtimeStatusByEnvironmentId: statuses,
-            hostLabelOverrides: getHostDisplayLabelOverrides(state.settings)
-          }),
-          state.workspaceHostOrder
-        ),
-        workspaceHostScope: state.workspaceHostScope,
-        visibleWorkspaceHostIds: state.visibleWorkspaceHostIds,
-        defaultHostId,
-        localHostLabel: getLocalExecutionHostLabel(),
-        collapsedHostKeys: state.collapsedGroups,
-        forceCollapseHosts: false,
-        preferProjectGrouping: true
-      })
-    : rows
+  if (!needsHostSections) {
+    return rows
+  }
+  const sectioned = addHostSectionRows({
+    rows,
+    hostOptions: orderHostSectionOptions(
+      buildSidebarHostOptions({
+        repos: state.repos,
+        sshTargetLabels: state.sshTargetLabels,
+        sshConnectionStates: state.sshConnectionStates,
+        settings: state.settings,
+        runtimeEnvironments: state.runtimeEnvironments,
+        runtimeStatusByEnvironmentId: statuses,
+        hostLabelOverrides: getHostDisplayLabelOverrides(state.settings)
+      }),
+      state.workspaceHostOrder
+    ),
+    workspaceHostScope: state.workspaceHostScope,
+    visibleWorkspaceHostIds: state.visibleWorkspaceHostIds,
+    defaultHostId,
+    localHostLabel: getLocalExecutionHostLabel(),
+    collapsedHostKeys: state.collapsedGroups,
+    forceCollapseHosts: false,
+    preferProjectGrouping: false
+  })
+  return scopeHostSectionCollapse({ rows: sectioned, collapsedGroups: state.collapsedGroups })
 }
 
 export function computeRenderedSidebarWorktreeOrder(

@@ -14,7 +14,7 @@ import type {
 import type { RuntimeCompatVerdict } from '../../remote-runtime/protocol/protocol-compat'
 import type { RuntimeHostBlockedReason } from '../../remote-runtime/host-status/runtime-host-status'
 import type { SshConnectionStatus } from '../../remote-runtime/ssh/ssh-types'
-import type { Row } from '../row-types'
+import type { Row, WorktreeGroupBy } from '../row-types'
 import { getFolderWorkspaceHostId } from './folder-workspace-host-id'
 import { countWorkspaceRows } from './host-section-workspace-count'
 import { localizeProjectHeader, localizeRowsToHost } from './project-header-localization'
@@ -116,6 +116,15 @@ function getProjectGroupHeaderDepth(row: Row): number | null {
   return row.type === 'header' && row.projectGroup && !row.repo
     ? (row.projectGroupDepth ?? 0)
     : null
+}
+
+/** Keep host sections independent of the visibility filter in the Project view. */
+export function shouldGroupSidebarByHost(
+  groupBy: WorktreeGroupBy,
+  scope: ExecutionHostScope,
+  visibleHostIds: readonly ExecutionHostId[] | null | undefined
+): boolean {
+  return groupBy === 'repo' || scope !== ALL_EXECUTION_HOSTS_SCOPE || visibleHostIds != null
 }
 
 export function addHostSectionRows(args: {
